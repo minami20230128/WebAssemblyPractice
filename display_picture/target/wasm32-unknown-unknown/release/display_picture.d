@@ -1,0 +1,1 @@
+/Users/hirataminami/Desktop/webassembly_practice/display_picture/target/wasm32-unknown-unknown/release/display_picture.wasm: /Users/hirataminami/Desktop/webassembly_practice/display_picture/src/lib.rs
