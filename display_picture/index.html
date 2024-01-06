@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
     <head>
         <meta charset="UTF-8">
@@ -6,6 +6,12 @@
     </head>
     <body>
         <div id="parent"></div>
-        <script src="/pkg/display_picture.js"></script>
+        <script type="module">
+            import init from './pkg/display_picture.js';
+            async function embed_picture() {
+                await init();
+            }
+            embed_picture();
+        </script>
     </body>
 </html>
