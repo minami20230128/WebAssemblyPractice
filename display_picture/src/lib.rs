@@ -1,7 +1,11 @@
 use wasm_bindgen::prelude::*;
+extern crate console_error_panic_hook;
+use std::panic;
 
 #[wasm_bindgen(start)]
 pub fn embed_picture() -> Result<(), JsValue> {
+
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
 
     let document = web_sys::window().unwrap().document().unwrap();
 
