@@ -9,7 +9,7 @@ pub fn embed_picture() -> Result<(), JsValue> {
 
     let document = web_sys::window().unwrap().document().unwrap();
 
-    let div = document.get_element_by_id("div").unwrap();
+    let div = document.get_element_by_id("parent").unwrap();
     //let val = document.create_element("p").unwrap();
     //val.set_inner_html("Hello World from WebAssemblyMan!");
     let a = document.create_element("a").unwrap();
