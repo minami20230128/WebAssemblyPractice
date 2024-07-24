@@ -16,7 +16,9 @@ features = [
   'Window',
   'Document',
   'Element',
-  'HtmlElement'
+  'HtmlElement',
+  'Event',
+  'HtmlImageElement'
 ]
 
 [dev-dependencies]
