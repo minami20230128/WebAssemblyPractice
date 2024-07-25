@@ -12,6 +12,24 @@
                 await init();
             }
             embed_picture();
+            const BUTTON_CLICK_EVENT= document.getElementById('yourButtonId');
+            BUTTON_CLICK_EVENT.addEventListener('click', () => {
+                removeAllButtons()
+            });
+
+            let buttons = document.getElementsByTagName("button");
+
+            function removeAllButtons() {
+                // ページ内のすべてのボタン要素を取得する
+                let buttons = document.getElementsByTagName("button");
+
+                // NodeListを配列に変換して、各ボタンを削除する
+                Array.from(buttons).forEach(button => {
+                    button.remove();
+                });
+            }
         </script>
+        <button id="yourButtonId">Click me!</button>
+        <button id="buttonToDelete">Click me!</button>
     </body>
 </html>

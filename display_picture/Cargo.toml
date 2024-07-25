@@ -18,7 +18,8 @@ features = [
   'Element',
   'HtmlElement',
   'Event',
-  'HtmlImageElement'
+  'HtmlImageElement',
+  'console',
 ]
 
 [dev-dependencies]

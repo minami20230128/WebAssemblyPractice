@@ -1,8 +1,6 @@
 use wasm_bindgen::prelude::*;
 extern crate console_error_panic_hook;
 use std::panic;
-use wasm_bindgen::JsCast;
-use web_sys::{console, Event, HtmlImageElement};
 
 #[wasm_bindgen(start)]
 pub fn embed_picture() -> Result<(), JsValue> {
@@ -20,15 +18,21 @@ pub fn embed_picture() -> Result<(), JsValue> {
     let img = document.create_element("img").unwrap();
     img.set_attribute("src", "dog.png");
 
-    let img_clone = img.clone(); // Clone img for closure
-    img.add_event_listener_with_callback(
-        "click",
-        // Closure handles the event
-        Closure::wrap(Box::new(move |_event: Event| {
-            // Example action on click, like logging
-            console::log_1(&"Image clicked!".into());
-        })),
-    )?;
+
+    let binding = document.get_element_by_id("yourButtonId")
+        .expect("should have a button on the page");
+
+    let button = binding
+    .dyn_ref::<web_sys::HtmlElement>()
+    .expect("#button-click-test be an `HtmlElement`");
+    
+    let closure = Closure::wrap(Box::new(|| {
+        hide_button().unwrap_or_else(|err| {
+            
+        });
+    }) as Box<dyn Fn()>);
+
+    button.set_onclick(Some(closure.as_ref().unchecked_ref()));
 
     a.append_child(&img).unwrap();
     div.append_child(&a).unwrap();
@@ -42,4 +46,17 @@ pub fn clear_picture(){
     if let Some(parent_node) = img.parent_node() {
         parent_node.remove_child(&img).unwrap();
     }
+}
+
+#[wasm_bindgen]
+pub fn hide_button() -> Result<(), JsValue> {
+    let window = web_sys::window().unwrap();
+    let document = window.document().unwrap();
+    let button = document.get_element_by_id("buttonToDelete");
+
+    if let Some(button) = button {
+        button.remove();
+    }
+
+    Ok(())
 }
