@@ -18,22 +18,6 @@ pub fn embed_picture() -> Result<(), JsValue> {
     let img = document.create_element("img").unwrap();
     img.set_attribute("src", "dog.png");
 
-
-    let binding = document.get_element_by_id("yourButtonId")
-        .expect("should have a button on the page");
-
-    let button = binding
-    .dyn_ref::<web_sys::HtmlElement>()
-    .expect("#button-click-test be an `HtmlElement`");
-    
-    let closure = Closure::wrap(Box::new(|| {
-        hide_button().unwrap_or_else(|err| {
-            
-        });
-    }) as Box<dyn Fn()>);
-
-    button.set_onclick(Some(closure.as_ref().unchecked_ref()));
-
     a.append_child(&img).unwrap();
     div.append_child(&a).unwrap();
 

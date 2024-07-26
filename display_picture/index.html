@@ -12,12 +12,25 @@
                 await init();
             }
             embed_picture();
-            const BUTTON_CLICK_EVENT= document.getElementById('yourButtonId');
-            BUTTON_CLICK_EVENT.addEventListener('click', () => {
-                removeAllButtons()
-            });
 
-            let buttons = document.getElementsByTagName("button");
+            let count = 0;
+            putButtons();
+
+            function putButton(){
+                let button = document.createElement('button');
+                button.id = 'add_soft_button';
+                button.innerText = String(count);
+                button.addEventListener('click', () => {
+                    event()
+                });
+                let body = document.body;
+                body.appendChild(button);
+            }
+
+            function event(){
+                removeAllButtons()
+                putButtons()
+            }
 
             function removeAllButtons() {
                 // ページ内のすべてのボタン要素を取得する
@@ -27,9 +40,16 @@
                 Array.from(buttons).forEach(button => {
                     button.remove();
                 });
+
+                count++;
             }
+
+            function putButtons(num){
+                for (let i = 0; i < 4; i++) {
+                    putButton();
+                }
+            }
+
         </script>
-        <button id="yourButtonId">Click me!</button>
-        <button id="buttonToDelete">Click me!</button>
     </body>
 </html>
