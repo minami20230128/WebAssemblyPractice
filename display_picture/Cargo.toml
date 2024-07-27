@@ -20,6 +20,7 @@ features = [
   'Event',
   'HtmlImageElement',
   'console',
+  'NodeList',
 ]
 
 [dev-dependencies]
