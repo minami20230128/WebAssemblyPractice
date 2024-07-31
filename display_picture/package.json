@@ -1,0 +1,17 @@
+{
+  "name": "display_picture",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rimraf dist pkg && webpack /pkg/display_picture.js",
+    "serve": "webpack-dev-server --open -d"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "webpack-cli": "^3.3.12",
+    "webpack-dev-server": "^3.8.0"
+  }
+}

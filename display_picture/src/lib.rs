@@ -2,7 +2,12 @@ use wasm_bindgen::prelude::*;
 extern crate console_error_panic_hook;
 use std::panic;
 use web_sys::{HtmlElement, NodeList};
-
+use serde::{Serialize, Deserialize};
+use serde_json::Result as SerdeResult;
+use std::fs::File;
+use std::io::Read;
+use std::sync::Mutex;
+use std::sync::Arc;
 
 #[wasm_bindgen(start)]
 pub fn embed_picture() -> Result<(), JsValue> {
@@ -23,7 +28,8 @@ pub fn embed_picture() -> Result<(), JsValue> {
     a.append_child(&img).unwrap();
     div.append_child(&a).unwrap();
 
-    put_buttons(4);
+    //load_quizzes();
+    put_buttons();
 
     Ok(())
 }
@@ -36,19 +42,16 @@ pub fn clear_picture(){
     }
 }
 
-// グローバル変数としてカウントを保持する
-static mut COUNT: u32 = 0;
-
 // ボタンを作成する関数
 #[wasm_bindgen]
-pub fn put_button() -> Result<(), JsValue> {
+pub fn put_button(answer : &str) -> Result<(), JsValue> {
     unsafe {
         let document = web_sys::window().unwrap().document().unwrap();
 
         // 新しいボタンを作成
         let button = document.create_element("button")?.dyn_into::<HtmlElement>()?;
         button.set_id("add_soft_button");
-        button.set_inner_html(&COUNT.to_string());
+        button.set_inner_html(answer);
 
         // ボタンにクリックイベントを設定
         let button_clone = button.clone();
@@ -60,18 +63,44 @@ pub fn put_button() -> Result<(), JsValue> {
 
         // <body>にボタンを追加
         document.body().unwrap().append_child(&button)?;
-
-        // カウントを増加
-        COUNT += 1;
     }
     Ok(())
+}
+
+lazy_static::lazy_static! {
+    static ref QUIZZES: Arc<Mutex<Vec<Quiz>>> = Arc::new(Mutex::new(Vec::new()));
+    static ref INDEX: Mutex<usize> = Mutex::new(0);
 }
 
 // イベントを処理する関数
 #[wasm_bindgen]
 pub fn event() -> Result<(), JsValue> {
     remove_all_buttons()?;
-    put_buttons(4)
+    put_buttons()
+}
+
+// 指定された数のボタンを追加する関数
+#[wasm_bindgen]
+pub fn put_buttons() -> Result<(), JsValue> {
+    //let quizzes = QUIZZES.lock().unwrap();
+    //let index = *INDEX.lock().unwrap();
+    //
+    //if index >= quizzes.len() {
+    //    return Err(JsValue::from_str("Index out of bounds"));
+    //}
+    //let answers = &quizzes[index].options;
+
+    let answers = vec!["朝", "昼", "夕", "夜"];
+    for answer in answers.iter() {
+        // JavaScript 側にボタンを作成するための関数を呼び出す
+        put_button(answer)?;
+    }
+
+    // インデックスを更新
+    let mut index_lock = INDEX.lock().unwrap();
+    *index_lock += 1;
+    
+    Ok(())
 }
 
 // ページ内のすべてのボタンを削除する関数
@@ -94,21 +123,40 @@ pub fn remove_all_buttons() -> Result<(), JsValue> {
     Ok(())
 }
 
-// 指定された数のボタンを追加する関数
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Quiz {
+    pub question: String,
+    pub options: Vec<String>,
+    pub correct_answer: String,
+}
+
 #[wasm_bindgen]
-pub fn put_buttons(num: u32) -> Result<(), JsValue> {
-    for _ in 0..num {
-        put_button()?;
-    }
+pub fn initialize_quizzes() -> Result<(), JsValue> {
+    let quizzes = load_quizzes().map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let mut quiz_lock = QUIZZES.lock().unwrap();
+    *quiz_lock = quizzes;
     Ok(())
 }
 
-//流れ
-//ボタンを4つ表示
-//ボタンを押す
-//すべてのボタンを消去
-//次のボタンの表示・イベントを設定
-//次のボタンを表示
+fn load_quizzes() -> Result<Vec<Quiz>, Box<dyn std::error::Error>> {
+    let file_path = "questions.json";
+    let mut file = File::open(file_path)?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+    let quizzes: Vec<Quiz> = serde_json::from_str(&contents)?;
+    Ok(quizzes)
+}
 
-//init()で最初のボタンの表示・処理を設定・設置
-//
+//流れ
+//スタートボタンを表示
+//（クリックする）
+//スタート画面の背景とボタンを消す
+//問題画面の背景、問題文、ボタン4つを表示する
+
+//(いずれかのボタンをクリックする)
+//すべてのボタンを消去
+//次の問題・ボタンを表示
+
+//(5問目に回答する)
+//現在の背景・問題文・ボタン消す
+//得点・今までの問題の正誤・正しい答えを表示
