@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Dog</title>
+    </head>
+    <body>
+        <div id="parent"></div>
+        <script type="module">
+            import init, { initialize_quizzes, put_buttons } from '../pkg/display_picture.js';
+
+            async function run() {
+                await init();
+            }
+
+            run();
+
+            initialize_quizzes();
+            embed_picture();
+            put_buttons();
+
+        </script>
+    </body>
+</html>
