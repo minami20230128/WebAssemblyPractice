@@ -1,45 +1,43 @@
 use wasm_bindgen::prelude::*;
 extern crate console_error_panic_hook;
 use std::panic;
-use web_sys::{HtmlElement, NodeList};
+use web_sys::{HtmlElement, NodeList, js_sys, window};
 use serde::{Serialize, Deserialize};
 use serde_json::Result as SerdeResult;
 use std::fs::File;
 use std::io::Read;
 use std::sync::Mutex;
 use std::sync::Arc;
+use std::error::Error as StdError;
 
 #[wasm_bindgen(start)]
-pub fn embed_picture() -> Result<(), JsValue> {
+pub fn run() -> Result<(), JsValue> {
 
-    panic::set_hook(Box::new(console_error_panic_hook::hook));
+    embed_picture();
 
-    let document = web_sys::window().unwrap().document().unwrap();
-
-    let div = document.get_element_by_id("parent").unwrap();
-    //let val = document.create_element("p").unwrap();
-    //val.set_inner_html("Hello World from WebAssemblyMan!");
-    let a = document.create_element("a").unwrap();
-    a.set_attribute("href", "https://ja.wikipedia.org/wiki/甲斐犬");
-
-    let img = document.create_element("img").unwrap();
-    img.set_attribute("src", "dog.png");
-
-    a.append_child(&img).unwrap();
-    div.append_child(&a).unwrap();
-
-    //load_quizzes();
-    put_buttons();
-
-    Ok(())
+    let quiz = receive_quiz_data();
+    put_buttons(&quiz)
 }
 
-pub fn clear_picture(){
-    let document = web_sys::window().unwrap().document().unwrap();
-    let img = document.get_element_by_id("dog.png").unwrap();
-    if let Some(parent_node) = img.parent_node() {
-        parent_node.remove_child(&img).unwrap();
-    }
+pub fn get_random_quiz_from_js() -> String {
+    let window = window().expect("no global `window` exists");
+    
+    // JavaScript の関数を取得
+    let js_value = window
+    .get("sendRandomQuizToRust")
+    .expect("function `sendRandomQuizToRust` not found");
+
+    // JsValue を js_sys::Function に変換
+    let js_function = js_value
+    .dyn_into::<js_sys::Function>()
+    .expect("could not convert to `Function`");
+
+    // JavaScript の関数を呼び出し、結果を取得
+    let result = js_function
+    .call0(&JsValue::NULL)
+    .expect("failed to call `sendRandomQuizToRust`");
+
+    result.as_string().expect("failed to convert JsValue to String")
 }
 
 // ボタンを作成する関数
@@ -67,39 +65,49 @@ pub fn put_button(answer : &str) -> Result<(), JsValue> {
     Ok(())
 }
 
-lazy_static::lazy_static! {
-    static ref QUIZZES: Arc<Mutex<Vec<Quiz>>> = Arc::new(Mutex::new(Vec::new()));
-    static ref INDEX: Mutex<usize> = Mutex::new(0);
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct Quiz {
+    pub question: String,
+    pub options: Vec<String>,
+    pub correct_answer: String,
+}
+
+pub fn receive_quiz_data() -> Quiz {
+    let json_data = get_random_quiz_from_js();
+    // JSON データを Rust の Quiz 構造体にデシリアライズする
+    let quiz: SerdeResult<Quiz> = serde_json::from_str(&json_data);
+    
+    match quiz {
+        Ok(q) => {
+            // Quiz 構造体のデータを使って何か処理する
+            web_sys::console::log_1(&format!("Received quiz: {:?}", q).into());
+            q
+        }
+        Err(e) => {
+            web_sys::console::error_1(&format!("Failed to parse quiz data: {:?}", e).into());
+            Quiz::default()
+        }
+    }
 }
 
 // イベントを処理する関数
 #[wasm_bindgen]
 pub fn event() -> Result<(), JsValue> {
     remove_all_buttons()?;
-    put_buttons()
+    let quiz = receive_quiz_data();
+    put_buttons(&quiz)
 }
 
 // 指定された数のボタンを追加する関数
-#[wasm_bindgen]
-pub fn put_buttons() -> Result<(), JsValue> {
-    //let quizzes = QUIZZES.lock().unwrap();
-    //let index = *INDEX.lock().unwrap();
-    //
-    //if index >= quizzes.len() {
-    //    return Err(JsValue::from_str("Index out of bounds"));
-    //}
-    //let answers = &quizzes[index].options;
+pub fn put_buttons(quiz: &Quiz) -> Result<(), JsValue> {
 
-    let answers = vec!["朝", "昼", "夕", "夜"];
+    let answers = &quiz.options;
+
     for answer in answers.iter() {
         // JavaScript 側にボタンを作成するための関数を呼び出す
         put_button(answer)?;
     }
 
-    // インデックスを更新
-    let mut index_lock = INDEX.lock().unwrap();
-    *index_lock += 1;
-    
     Ok(())
 }
 
@@ -123,40 +131,23 @@ pub fn remove_all_buttons() -> Result<(), JsValue> {
     Ok(())
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Quiz {
-    pub question: String,
-    pub options: Vec<String>,
-    pub correct_answer: String,
-}
+pub fn embed_picture() -> Result<(), JsValue> {
 
-#[wasm_bindgen]
-pub fn initialize_quizzes() -> Result<(), JsValue> {
-    let quizzes = load_quizzes().map_err(|e| JsValue::from_str(&e.to_string()))?;
-    let mut quiz_lock = QUIZZES.lock().unwrap();
-    *quiz_lock = quizzes;
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
+
+    let document = web_sys::window().unwrap().document().unwrap();
+
+    let div = document.get_element_by_id("parent").unwrap();
+    //let val = document.create_element("p").unwrap();
+    //val.set_inner_html("Hello World from WebAssemblyMan!");
+    let a = document.create_element("a").unwrap();
+    a.set_attribute("href", "https://ja.wikipedia.org/wiki/甲斐犬");
+
+    let img = document.create_element("img").unwrap();
+    img.set_attribute("src", "dog.png");
+
+    a.append_child(&img).unwrap();
+    div.append_child(&a).unwrap();
+
     Ok(())
 }
-
-fn load_quizzes() -> Result<Vec<Quiz>, Box<dyn std::error::Error>> {
-    let file_path = "questions.json";
-    let mut file = File::open(file_path)?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-    let quizzes: Vec<Quiz> = serde_json::from_str(&contents)?;
-    Ok(quizzes)
-}
-
-//流れ
-//スタートボタンを表示
-//（クリックする）
-//スタート画面の背景とボタンを消す
-//問題画面の背景、問題文、ボタン4つを表示する
-
-//(いずれかのボタンをクリックする)
-//すべてのボタンを消去
-//次の問題・ボタンを表示
-
-//(5問目に回答する)
-//現在の背景・問題文・ボタン消す
-//得点・今までの問題の正誤・正しい答えを表示
