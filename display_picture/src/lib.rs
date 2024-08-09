@@ -1,14 +1,9 @@
 use wasm_bindgen::prelude::*;
 extern crate console_error_panic_hook;
 use std::panic;
-use web_sys::{HtmlElement, NodeList, js_sys, window};
+use web_sys::{HtmlElement, NodeList};
 use serde::{Serialize, Deserialize};
 use serde_json::Result as SerdeResult;
-use std::fs::File;
-use std::io::Read;
-use std::sync::Mutex;
-use std::sync::Arc;
-use std::error::Error as StdError;
 
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
@@ -19,24 +14,14 @@ pub fn run() -> Result<(), JsValue> {
     put_buttons(&quiz)
 }
 
+//Cargo.tomlからのパスを指定する
+#[wasm_bindgen(module = "/src/quiz.js")]
+extern "C" {
+    fn sendRandomQuizToRust() -> JsValue;
+}
+
 pub fn get_random_quiz_from_js() -> String {
-    let window = window().expect("no global `window` exists");
-    
-    // JavaScript の関数を取得
-    let js_value = window
-    .get("sendRandomQuizToRust")
-    .expect("function `sendRandomQuizToRust` not found");
-
-    // JsValue を js_sys::Function に変換
-    let js_function = js_value
-    .dyn_into::<js_sys::Function>()
-    .expect("could not convert to `Function`");
-
-    // JavaScript の関数を呼び出し、結果を取得
-    let result = js_function
-    .call0(&JsValue::NULL)
-    .expect("failed to call `sendRandomQuizToRust`");
-
+    let result = sendRandomQuizToRust();
     result.as_string().expect("failed to convert JsValue to String")
 }
 
