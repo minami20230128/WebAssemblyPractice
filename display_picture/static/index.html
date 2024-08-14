@@ -8,14 +8,16 @@
         <div id="parent"></div>
         <script type="module">
 
-            import {run} from '../pkg/display_picture.js';
+            import init, {run} from '../pkg/display_picture.js';
             import {initializeQuizzes} from "../src/quiz.js";
 
-            async function run() {
-                initializeQuizzes("../questions.json");
+            async function main() {
+                await init();
+                initializeQuizzes("../src/questions.json");
+                run();
             }
 
-            run();
+            main();
 
         </script>
     </body>
