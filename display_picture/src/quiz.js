@@ -15,6 +15,7 @@ class Quiz {
 }
 
 export async function sendRandomQuizToRust() {
+    printQuizzes();
     if (quizzes.length === 0) {
         console.error("No quizzes available.");
         return;
@@ -28,11 +29,11 @@ export async function sendRandomQuizToRust() {
 // グローバル変数として quizzes を保持
 let quizzes = [];
 
-function printQuizzes() {
+export function printQuizzes() {
     quizzes.forEach((quiz, index) => {
         console.log(`Quiz ${index + 1}:`);
         console.log(`Question: ${quiz.question}`);
-        console.log(`Options: ${quiz.options.join(', ')}`);
+        console.log(`Options: ${quiz.options.join(",")}`);
         console.log(`Correct Answer: ${quiz.answer}`);
         console.log('---');
     });
@@ -47,6 +48,4 @@ export async function initializeQuizzes(url) {
     } catch (error) {
         console.error("Error initializing quizzes:", error);
     }
-
-    printQuizzes();
 }

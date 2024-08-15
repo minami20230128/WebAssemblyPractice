@@ -28,25 +28,24 @@ pub fn get_random_quiz_from_js() -> String {
 // ボタンを作成する関数
 #[wasm_bindgen]
 pub fn put_button(answer : &str) -> Result<(), JsValue> {
-    unsafe {
-        let document = web_sys::window().unwrap().document().unwrap();
+    let document = web_sys::window().unwrap().document().unwrap();
 
-        // 新しいボタンを作成
-        let button = document.create_element("button")?.dyn_into::<HtmlElement>()?;
-        button.set_id("add_soft_button");
-        button.set_inner_html(answer);
+    // 新しいボタンを作成
+    let button = document.create_element("button")?.dyn_into::<HtmlElement>()?;
+    button.set_id("add_soft_button");
+    button.set_inner_html(answer);
 
-        // ボタンにクリックイベントを設定
-        let button_clone = button.clone();
-        let closure = Closure::wrap(Box::new(move || {
-            event();
-        }) as Box<dyn Fn()>);
-        button.set_onclick(Some(closure.as_ref().unchecked_ref()));
-        closure.forget(); // ClosureをJavaScriptで保持させる
+    // ボタンにクリックイベントを設定
+    let button_clone = button.clone();
+    let closure = Closure::wrap(Box::new(move || {
+        event();
+    }) as Box<dyn Fn()>);
+    button.set_onclick(Some(closure.as_ref().unchecked_ref()));
+    closure.forget(); // ClosureをJavaScriptで保持させる
 
-        // <body>にボタンを追加
-        document.body().unwrap().append_child(&button)?;
-    }
+    // <body>にボタンを追加
+    document.body().unwrap().append_child(&button)?;
+    
     Ok(())
 }
 

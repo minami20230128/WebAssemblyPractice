@@ -9,12 +9,13 @@
         <script type="module">
 
             import init, {run} from '../pkg/display_picture.js';
-            import {initializeQuizzes} from "../src/quiz.js";
+            import {initializeQuizzes, printQuizzes} from "../src/quiz.js";
 
             async function main() {
                 await init();
-                initializeQuizzes("../src/questions.json");
-                run();
+                await initializeQuizzes("../src/questions.json");
+                await printQuizzes();
+                await run();
             }
 
             main();
