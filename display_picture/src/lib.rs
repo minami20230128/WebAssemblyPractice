@@ -6,18 +6,28 @@ use serde::{Serialize, Deserialize};
 use serde_json::Result as SerdeResult;
 
 #[wasm_bindgen(start)]
-pub fn run() -> Result<(), JsValue> {
-
+pub fn run() {
     embed_picture();
-
-    let quiz = receive_quiz_data();
-    put_buttons(&quiz)
+    start_quiz_initialization();
+    //let quiz = receive_quiz_data();
+    //put_buttons(&quiz)
 }
 
 //Cargo.tomlからのパスを指定する
 #[wasm_bindgen(module = "/src/quiz.js")]
 extern "C" {
     fn sendRandomQuizToRust() -> JsValue;
+}
+
+#[wasm_bindgen(module = "/src/quiz.js")]
+extern "C" {
+    fn initializeQuizzes();
+}
+
+#[wasm_bindgen]
+pub fn start_quiz_initialization() {
+    // JavaScript の initializeQuizzes 関数を呼び出す
+    initializeQuizzes();
 }
 
 pub fn get_random_quiz_from_js() -> String {
@@ -45,7 +55,7 @@ pub fn put_button(answer : &str) -> Result<(), JsValue> {
 
     // <body>にボタンを追加
     document.body().unwrap().append_child(&button)?;
-    
+
     Ok(())
 }
 

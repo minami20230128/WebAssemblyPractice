@@ -40,12 +40,16 @@ export function printQuizzes() {
 }
 
 // JSON ファイルを読み込んで quizzes を初期化
-export async function initializeQuizzes(url) {
-    try {
-        const response = await fetch(url);
-        const data = await response.json();
-        quizzes = data.map(item => new Quiz(item.question, item.answer));
-    } catch (error) {
-        console.error("Error initializing quizzes:", error);
-    }
+export function initializeQuizzes() {
+    const fs = require('fs/promises');
+    const url = "question.json";
+    const data = fs.readFileSync(url, 'utf8');
+    
+    // JSONデータをパースしてオブジェクトの配列に変換する
+    const quizzesData = JSON.parse(data);
+    
+    // Quizクラスの配列を作成する
+    const quizzes = quizzesData.map(item => new Quiz(item.question, item.options, item.answer));
+    
+    return quizzes;
 }
