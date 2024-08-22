@@ -1,3 +1,5 @@
+//import { createRequire } from 'module';
+
 class Quiz {
     constructor(question, options, answer) {
         this.question = question;
@@ -41,15 +43,28 @@ export function printQuizzes() {
 
 // JSON ファイルを読み込んで quizzes を初期化
 export function initializeQuizzes() {
-    const fs = require('fs/promises');
-    const url = "question.json";
-    const data = fs.readFileSync(url, 'utf8');
-    
-    // JSONデータをパースしてオブジェクトの配列に変換する
-    const quizzesData = JSON.parse(data);
+
+    //const require = createRequire(import.meta.url);
+    //const fs = require('fs');
+
+    console.log("initialize quizzes");
+    const url = "../src/questions.json";
+    //const data = fs.readFileSync(url, 'utf8');
+
+    let data;
+
+    fetch(url)
+    .then(response => response.json())
+    .then(data => {
+        console.log('JSONファイルの内容:');
+        console.log(data);
+    })
+    .catch(error => {
+        console.error('エラー:', error);
+    });
     
     // Quizクラスの配列を作成する
-    const quizzes = quizzesData.map(item => new Quiz(item.question, item.options, item.answer));
+    const quizzes = data.map(item => new Quiz(item.question, item.options, item.correct_answer));
     
     return quizzes;
 }
