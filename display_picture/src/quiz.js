@@ -42,29 +42,27 @@ export function printQuizzes() {
 }
 
 // JSON ファイルを読み込んで quizzes を初期化
-export function initializeQuizzes() {
 
-    //const require = createRequire(import.meta.url);
-    //const fs = require('fs');
-
-    console.log("initialize quizzes");
+export async function initializeQuizzes() {
     const url = "../src/questions.json";
-    //const data = fs.readFileSync(url, 'utf8');
 
-    let data;
+    try {
+        // fetch を使ってローカルの JSON ファイルを取得
+        const response = await fetch(url);
 
-    fetch(url)
-    .then(response => response.json())
-    .then(data => {
-        console.log('JSONファイルの内容:');
-        console.log(data);
-    })
-    .catch(error => {
-        console.error('エラー:', error);
-    });
-    
-    // Quizクラスの配列を作成する
-    const quizzes = data.map(item => new Quiz(item.question, item.options, item.correct_answer));
-    
-    return quizzes;
+        // レスポンスが OK かどうかを確認
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        // レスポンスを JSON 形式に変換
+        const data = await response.json();
+        quizzes = data.map(item => new Quiz(item.question, item.options, item.correct_answer));
+
+        console.log(quizzes);
+
+    } catch (error) {
+        // エラー処理
+        console.error('There has been a problem with your fetch operation:', error);
+    }
 }

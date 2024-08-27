@@ -9,8 +9,8 @@ use serde_json::Result as SerdeResult;
 pub fn run() {
     embed_picture();
     start_quiz_initialization();
-    //let quiz = receive_quiz_data();
-    //put_buttons(&quiz)
+    let quiz = receive_quiz_data();
+    put_buttons(&quiz)
 }
 
 //Cargo.tomlからのパスを指定する
