@@ -16,16 +16,22 @@ class Quiz {
     }
 }
 
-export async function sendRandomQuizToRust() {
-    printQuizzes();
-    if (quizzes.length === 0) {
-        console.error("No quizzes available.");
-        return;
+class QuizProvider {
+    constructor(quizzes){
+        this.quizzes = quizzes
     }
-    const randomIndex = Math.floor(Math.random() * quizzes.length);
-    const randomQuiz = quizzes[randomIndex];
-    const wasm = await import('../src/index.js');
-    wasm.receiveQuizData(randomQuiz.toJson());
+
+    async sendRandomQuizToRust() {
+        printQuizzes();
+        if (this.quizzes.length === 0) {
+            console.error("No quizzes available.");
+            return;
+        }
+        const randomIndex = Math.floor(Math.random() * this.quizzes.length);
+        const randomQuiz = this.quizzes[randomIndex];
+        const wasm = await import('../src/index.js');
+        wasm.receiveQuizData(randomQuiz.toJson());
+    }
 }
 
 // グローバル変数として quizzes を保持
@@ -58,6 +64,9 @@ export async function initializeQuizzes() {
         // レスポンスを JSON 形式に変換
         const data = await response.json();
         quizzes = data.map(item => new Quiz(item.question, item.options, item.correct_answer));
+        quizProvider = new QuizProvider(quizzes);
+
+        window.QuizProvider = quizProvider;
 
         console.log(quizzes);
 

@@ -6,7 +6,7 @@ use serde::{Serialize, Deserialize};
 use serde_json::Result as SerdeResult;
 
 #[wasm_bindgen(start)]
-pub fn run() {
+pub fn run() -> Result<(), wasm_bindgen::JsValue> {
     embed_picture();
     start_quiz_initialization();
     let quiz = receive_quiz_data();
@@ -16,7 +16,11 @@ pub fn run() {
 //Cargo.tomlからのパスを指定する
 #[wasm_bindgen(module = "/src/quiz.js")]
 extern "C" {
-    fn sendRandomQuizToRust() -> JsValue;
+    #[wasm_bindgen(js_namespace = window)]
+    pub type QuizProvider;
+
+    #[wasm_bindgen(method)]
+    fn sendRandomQuizToRust(this: &QuizProvider) -> JsValue;
 }
 
 #[wasm_bindgen(module = "/src/quiz.js")]
@@ -31,7 +35,9 @@ pub fn start_quiz_initialization() {
 }
 
 pub fn get_random_quiz_from_js() -> String {
-    let result = sendRandomQuizToRust();
+    let my_class = js_sys::eval("new QuizProvider()").unwrap();
+    let quiz_privider = my_class.dyn_into::<QuizProvider>().unwrap();
+    let result = quiz_privider.sendRandomQuizToRust();
     result.as_string().expect("failed to convert JsValue to String")
 }
 
