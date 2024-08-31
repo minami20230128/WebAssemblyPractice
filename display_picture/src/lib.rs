@@ -19,8 +19,8 @@ extern "C" {
     #[wasm_bindgen(js_namespace = window)]
     pub type QuizProvider;
 
-    #[wasm_bindgen(method)]
-    fn sendRandomQuizToRust(this: &QuizProvider) -> JsValue;
+    #[wasm_bindgen(js_name = "sendRandomQuizToRust")]
+    fn send_random_quiz_to_rust() -> js_sys::Promise;
 }
 
 #[wasm_bindgen(module = "/src/quiz.js")]
@@ -34,11 +34,10 @@ pub fn start_quiz_initialization() {
     initializeQuizzes();
 }
 
-pub fn get_random_quiz_from_js() -> String {
-    let my_class = js_sys::eval("new QuizProvider()").unwrap();
-    let quiz_privider = my_class.dyn_into::<QuizProvider>().unwrap();
-    let result = quiz_privider.sendRandomQuizToRust();
-    result.as_string().expect("failed to convert JsValue to String")
+#[wasm_bindgen(module = "/src/quiz.js")]
+extern "C" {
+    // Function to call `sendRandomQuizToRust` on a QuizProvider instance
+    fn callSendRandomQuiz() -> JsValue;
 }
 
 // ボタンを作成する関数
@@ -72,22 +71,16 @@ pub struct Quiz {
     pub correct_answer: String,
 }
 
-pub fn receive_quiz_data() -> Quiz {
-    let json_data = get_random_quiz_from_js();
+pub async fn receive_quiz_data() -> Quiz {
+    let promise = send_random_quiz_to_rust();
+    let result = wasm_bindgen_futures::JsFuture::from(promise).await?;
+    let json_data = result.as_string().expect("failed to convert JsValue to String");
+
     // JSON データを Rust の Quiz 構造体にデシリアライズする
-    let quiz: SerdeResult<Quiz> = serde_json::from_str(&json_data);
-    
-    match quiz {
-        Ok(q) => {
-            // Quiz 構造体のデータを使って何か処理する
-            web_sys::console::log_1(&format!("Received quiz: {:?}", q).into());
-            q
-        }
-        Err(e) => {
-            web_sys::console::error_1(&format!("Failed to parse quiz data: {:?}", e).into());
-            Quiz::default()
-        }
-    }
+    let quiz: Quiz = serde_json::from_str(&json_data)
+        .map_err(|err| JsValue::from_str(&format!("Failed to parse JSON: {}", err)))?;
+
+    Ok(quiz.unwrap())
 }
 
 // イベントを処理する関数

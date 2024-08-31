@@ -14,6 +14,12 @@ class Quiz {
             correct_answer: this.answer
         });
     }
+
+    toString(){
+        console.log(this.question);
+        console.log(this.options);
+        console.log(this.answer);
+    }
 }
 
 class QuizProvider {
@@ -22,20 +28,26 @@ class QuizProvider {
     }
 
     async sendRandomQuizToRust() {
-        printQuizzes();
+        //printQuizzes();
         if (this.quizzes.length === 0) {
             console.error("No quizzes available.");
             return;
         }
         const randomIndex = Math.floor(Math.random() * this.quizzes.length);
         const randomQuiz = this.quizzes[randomIndex];
-        const wasm = await import('../src/index.js');
-        wasm.receiveQuizData(randomQuiz.toJson());
+        randomQuiz.toString();
+
+        return JSON.stringify({
+            question: randomQuiz.question,
+            options: randomQuiz.options,
+            correct_answer: randomQuiz.answer
+        });
     }
 }
 
-// グローバル変数として quizzes を保持
-let quizzes = [];
+export function callSendRandomQuiz() {
+        return window.quizProvider.sendRandomQuizToRust();
+    }
 
 export function printQuizzes() {
     quizzes.forEach((quiz, index) => {
@@ -49,29 +61,17 @@ export function printQuizzes() {
 
 // JSON ファイルを読み込んで quizzes を初期化
 
-export async function initializeQuizzes() {
-    const url = "../src/questions.json";
+window.quizProvider = null;
 
-    try {
-        // fetch を使ってローカルの JSON ファイルを取得
-        const response = await fetch(url);
+const embeddedQuizData = [
+    { question: "What is 2+2?", options: ["3", "4"], correct_answer: "4" },
+    { question: "What is 3+5?", options: ["7", "8"], correct_answer: "8" }
+];
 
-        // レスポンスが OK かどうかを確認
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
 
-        // レスポンスを JSON 形式に変換
-        const data = await response.json();
-        quizzes = data.map(item => new Quiz(item.question, item.options, item.correct_answer));
-        quizProvider = new QuizProvider(quizzes);
-
-        window.QuizProvider = quizProvider;
-
-        console.log(quizzes);
-
-    } catch (error) {
-        // エラー処理
-        console.error('There has been a problem with your fetch operation:', error);
-    }
+export function initializeQuizzes() {
+    // Initialize quizzes from embedded data
+    const quizzes = embeddedQuizData.map(item => new Quiz(item.question, item.options, item.correct_answer));
+    window.quizProvider = new QuizProvider(quizzes);
+    console.log("Quizzes initialized:", quizzes);
 }
