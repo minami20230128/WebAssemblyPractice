@@ -27,14 +27,18 @@ class QuizProvider {
         this.quizzes = quizzes
     }
 
-    async sendRandomQuizToRust() {
+    sendRandomQuizToRust() {
+
+        console.log("sendRandomQuizToRust start");
         //printQuizzes();
         if (this.quizzes.length === 0) {
             console.error("No quizzes available.");
             return;
         }
         const randomIndex = Math.floor(Math.random() * this.quizzes.length);
+        console.log(randomIndex);
         const randomQuiz = this.quizzes[randomIndex];
+        console.log(randomQuiz);
         randomQuiz.toString();
 
         return JSON.stringify({
@@ -45,9 +49,10 @@ class QuizProvider {
     }
 }
 
-export function callSendRandomQuiz() {
-        return window.quizProvider.sendRandomQuizToRust();
-    }
+window.handleQuizResultSync = function() {
+    // Call the async function and handle the promise
+    return window.quizProvider.sendRandomQuizToRust();
+};
 
 export function printQuizzes() {
     quizzes.forEach((quiz, index) => {
@@ -75,3 +80,15 @@ export function initializeQuizzes() {
     window.quizProvider = new QuizProvider(quizzes);
     console.log("Quizzes initialized:", quizzes);
 }
+
+function logInfo(message) {
+    console.info(message);
+}
+
+function logError(message) {
+    console.error(message);
+}
+
+// Expose these functions globally
+window.logInfo = logInfo;
+window.logError = logError;

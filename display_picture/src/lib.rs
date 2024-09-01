@@ -34,10 +34,17 @@ pub fn start_quiz_initialization() {
     initializeQuizzes();
 }
 
-#[wasm_bindgen(module = "/src/quiz.js")]
+#[wasm_bindgen]
 extern "C" {
-    // Function to call `sendRandomQuizToRust` on a QuizProvider instance
-    fn callSendRandomQuiz() -> JsValue;
+    // JavaScript function that returns a Promise
+    #[wasm_bindgen(js_name = "handleQuizResultSync")]
+    fn handle_quiz_result_sync() -> String;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    fn logInfo(message: &str);
+    fn logError(message: &str);
 }
 
 // ボタンを作成する関数
@@ -71,16 +78,23 @@ pub struct Quiz {
     pub correct_answer: String,
 }
 
-pub async fn receive_quiz_data() -> Quiz {
-    let promise = send_random_quiz_to_rust();
-    let result = wasm_bindgen_futures::JsFuture::from(promise).await?;
-    let json_data = result.as_string().expect("failed to convert JsValue to String");
-
-    // JSON データを Rust の Quiz 構造体にデシリアライズする
-    let quiz: Quiz = serde_json::from_str(&json_data)
-        .map_err(|err| JsValue::from_str(&format!("Failed to parse JSON: {}", err)))?;
-
-    Ok(quiz.unwrap())
+pub fn receive_quiz_data() -> Quiz  {
+    logInfo("receive_quiz_data");
+    let json_string = handle_quiz_result_sync();
+    logInfo(&json_string);
+    
+    match serde_json::from_str(&json_string) {
+        Ok(quiz) => quiz, // Return the parsed Quiz struct
+        Err(err) => {
+            // Return a default Quiz instance in case of parsing error
+            eprintln!("Failed to parse JSON into Quiz: {:?}", err);
+            Quiz {
+                question: "Error".to_string(),
+                options: vec![],
+                correct_answer: "Parsing Error".to_string(),
+            }
+        }
+    }
 }
 
 // イベントを処理する関数
@@ -88,6 +102,7 @@ pub async fn receive_quiz_data() -> Quiz {
 pub fn event() -> Result<(), JsValue> {
     remove_all_buttons()?;
     let quiz = receive_quiz_data();
+    logInfo(&quiz.question);
     put_buttons(&quiz)
 }
 
