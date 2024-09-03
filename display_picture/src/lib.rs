@@ -1,16 +1,26 @@
 use wasm_bindgen::prelude::*;
 extern crate console_error_panic_hook;
 use std::panic;
-use web_sys::{HtmlElement, NodeList};
+use web_sys::{HtmlElement, NodeList, MouseEvent};
 use serde::{Serialize, Deserialize};
-use serde_json::Result as SerdeResult;
+use serde_json;
+use std::sync::Mutex;
+
+static SCORE: Mutex<i32> = Mutex::new(0);
 
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), wasm_bindgen::JsValue> {
     embed_picture();
     start_quiz_initialization();
-    let quiz = receive_quiz_data();
-    put_buttons(&quiz)
+    let str = receive_quiz_data();
+    let quiz: Quiz = match serde_json::from_str(&str) {
+        Ok(q) => q,
+        Err(e) => return Err(JsValue::from_str(&format!("JSON parsing error: {:?}", e))),
+    };
+
+    quiz.put_question();
+    quiz.put_options();
+    quiz.put_answer()
 }
 
 //Cargo.tomlからのパスを指定する
@@ -59,9 +69,12 @@ pub fn put_button(answer : &str) -> Result<(), JsValue> {
 
     // ボタンにクリックイベントを設定
     let button_clone = button.clone();
-    let closure = Closure::wrap(Box::new(move || {
-        event();
-    }) as Box<dyn Fn()>);
+    let closure = Closure::wrap(Box::new(move |mouse_event: MouseEvent| {
+        let target = mouse_event.target().unwrap();
+        let button = target.dyn_into::<HtmlElement>().unwrap();
+        let inner_html = button.inner_html();
+        event(inner_html);
+    })  as Box<dyn Fn(MouseEvent)>);
     button.set_onclick(Some(closure.as_ref().unchecked_ref()));
     closure.forget(); // ClosureをJavaScriptで保持させる
 
@@ -78,42 +91,125 @@ pub struct Quiz {
     pub correct_answer: String,
 }
 
-pub fn receive_quiz_data() -> Quiz  {
-    logInfo("receive_quiz_data");
-    let json_string = handle_quiz_result_sync();
-    logInfo(&json_string);
-    
-    match serde_json::from_str(&json_string) {
-        Ok(quiz) => quiz, // Return the parsed Quiz struct
-        Err(err) => {
-            // Return a default Quiz instance in case of parsing error
-            eprintln!("Failed to parse JSON into Quiz: {:?}", err);
-            Quiz {
-                question: "Error".to_string(),
-                options: vec![],
-                correct_answer: "Parsing Error".to_string(),
-            }
-        }
+impl Quiz {
+
+    pub fn put_question(&self) -> Result<(), JsValue> {
+        let document = web_sys::window().unwrap().document().unwrap();
+        let div = document.get_element_by_id("parent").unwrap();
+        let p = document.create_element("p").unwrap();
+        p.set_inner_html(&self.question);
+        div.append_child(&p).unwrap();
+
+        Ok(())
     }
+
+    pub fn put_options(&self) -> Result<(), JsValue> {
+        let answers = &self.options;
+
+        for answer in answers.iter() {
+            // JavaScript 側にボタンを作成するための関数を呼び出す
+            put_button(answer)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn put_answer(&self) -> Result<(), JsValue> {
+        let document = web_sys::window().unwrap().document().unwrap();
+        let div = document.get_element_by_id("parent").unwrap();
+        let p = document.create_element("p").unwrap();
+        p.set_inner_html(&self.correct_answer);
+        p.set_attribute("hidden", "")?;
+        p.set_id("answer");
+        div.append_child(&p).unwrap();
+        
+        Ok(())
+    }
+}
+
+pub fn receive_quiz_data() -> String  {
+    return handle_quiz_result_sync();
+}
+
+#[wasm_bindgen]
+pub fn check_answer(response : String) {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let div = document.get_element_by_id("parent").unwrap();
+    let answer_elem = document.get_element_by_id("answer").unwrap();
+    let answer = answer_elem.inner_html();
+
+    let mut score = SCORE.lock().unwrap();
+
+    if response == answer {
+        *score += 1;
+    }
+
+    logInfo(&score.to_string());
 }
 
 // イベントを処理する関数
 #[wasm_bindgen]
-pub fn event() -> Result<(), JsValue> {
-    remove_all_buttons()?;
-    let quiz = receive_quiz_data();
-    logInfo(&quiz.question);
-    put_buttons(&quiz)
+pub fn event(inner_html : String) -> Result<(), JsValue> {
+
+    check_answer(inner_html);
+
+    match remove_question() {
+        Ok(_) => {},
+        Err(e) => return Err(JsValue::from_str(&format!("Error removing buttons: {:?}", e))),
+    }
+
+    match remove_all_buttons() {
+        Ok(_) => {},
+        Err(e) => return Err(JsValue::from_str(&format!("Error removing buttons: {:?}", e))),
+    }
+
+    let str = receive_quiz_data();
+    logInfo(&str);
+
+    if str == "end" {
+        show_score_screen();
+    } else {
+        // JSONのデシリアライズエラーハンドリング
+        let quiz: Quiz = match serde_json::from_str(&str) {
+            Ok(q) => q,
+            Err(e) => return Err(JsValue::from_str(&format!("JSON parsing error: {:?}", e))),
+        };
+        quiz.put_question();
+        quiz.put_options();
+        quiz.put_answer();
+    }
+
+    Ok(())
 }
 
-// 指定された数のボタンを追加する関数
-pub fn put_buttons(quiz: &Quiz) -> Result<(), JsValue> {
+pub fn show_score_screen() -> Result<(), JsValue> {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let div = document.get_element_by_id("parent").unwrap();
+    let p = document.create_element("p").unwrap();
+    p.set_inner_html("end");
 
-    let answers = &quiz.options;
+    let score_elem = document.create_element("p").unwrap();
+    let mut score = SCORE.lock().unwrap();
+    let result = format!("{}問正解", &score.to_string());
+    score_elem.set_inner_html(&result);
+    div.append_child(&score_elem).unwrap();
+    Ok(())
+}
 
-    for answer in answers.iter() {
-        // JavaScript 側にボタンを作成するための関数を呼び出す
-        put_button(answer)?;
+#[wasm_bindgen]
+pub fn remove_question()-> Result<(), JsValue> {
+    let document = web_sys::window().unwrap().document().unwrap();
+
+    // ページ内のすべてのボタン要素を取得
+    let buttons:NodeList = document.query_selector_all("p").unwrap();
+
+    // ボタン要素を削除する
+    for i in (0..buttons.length()).rev() {
+        if let Some(button) = buttons.get(i) {
+            if let Some(button_element) = button.dyn_ref::<HtmlElement>() {
+                button_element.remove();
+            }
+        }
     }
 
     Ok(())

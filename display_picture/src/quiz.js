@@ -1,5 +1,3 @@
-//import { createRequire } from 'module';
-
 class Quiz {
     constructor(question, options, answer) {
         this.question = question;
@@ -15,7 +13,7 @@ class Quiz {
         });
     }
 
-    toString(){
+    toString() {
         console.log(this.question);
         console.log(this.options);
         console.log(this.answer);
@@ -23,23 +21,35 @@ class Quiz {
 }
 
 class QuizProvider {
-    constructor(quizzes){
-        this.quizzes = quizzes
+    constructor(quizzes) {
+        this.quizzes = quizzes;
+        this.displayedIndexes = []; // Array to keep track of displayed quiz indexes in order
+    }
+
+    getRemainingQuizzes() {
+        // Filter out quizzes that have been displayed
+        return this.quizzes.filter((_, index) => !this.displayedIndexes.some(displayed => displayed.index === index));
     }
 
     sendRandomQuizToRust() {
-
         console.log("sendRandomQuizToRust start");
-        //printQuizzes();
-        if (this.quizzes.length === 0) {
-            console.error("No quizzes available.");
-            return;
+
+        const remainingQuizzes = this.getRemainingQuizzes();
+        if (remainingQuizzes.length === 0) {
+            console.log("All quizzes have been displayed.");
+            return "end"; // Return a signal that all quizzes are completed
         }
-        const randomIndex = Math.floor(Math.random() * this.quizzes.length);
+
+        const randomIndex = Math.floor(Math.random() * remainingQuizzes.length);
+        const quizIndex = this.quizzes.indexOf(remainingQuizzes[randomIndex]); // Find the original index
+        const randomQuiz = this.quizzes[quizIndex];
+        
         console.log(randomIndex);
-        const randomQuiz = this.quizzes[randomIndex];
         console.log(randomQuiz);
         randomQuiz.toString();
+
+        // Add to displayedIndexes in the order they are displayed
+        this.displayedIndexes.push({ index: quizIndex, quiz: randomQuiz });
 
         return JSON.stringify({
             question: randomQuiz.question,
@@ -50,7 +60,7 @@ class QuizProvider {
 }
 
 window.handleQuizResultSync = function() {
-    // Call the async function and handle the promise
+    // Call the function and handle the result
     return window.quizProvider.sendRandomQuizToRust();
 };
 
@@ -72,7 +82,6 @@ const embeddedQuizData = [
     { question: "What is 2+2?", options: ["3", "4"], correct_answer: "4" },
     { question: "What is 3+5?", options: ["7", "8"], correct_answer: "8" }
 ];
-
 
 export function initializeQuizzes() {
     // Initialize quizzes from embedded data
