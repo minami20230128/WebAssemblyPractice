@@ -7,12 +7,25 @@
     <body>
         <div id="parent"></div>
         <script type="module">
+            async function loadQuizzes() {
+                console.log("loadQuizzes started");
+                const response = await fetch('../src/questions.json');
+                const data = await response.json();
+                
+                // WebAssemblyの関数にデータを渡す
+                // WebAssemblyインスタンスのインスタンスを保持していると仮定
+                if (window.wasm) {
+                    window.wasm.load_quizzes_from_json(data);
+                }
+            }
 
-            import init, {run} from '../pkg/display_picture.js';
+            import init, {run, print_quizzes_status} from '../pkg/display_picture.js';
             import {initializeQuizzes, printQuizzes} from "../src/quiz.js";
 
             async function main() {
                 await init();
+                loadQuizzes();
+                print_quizzes_status();
             }
 
             main();

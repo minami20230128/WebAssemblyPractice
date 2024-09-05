@@ -5,6 +5,8 @@ use web_sys::{HtmlElement, NodeList, MouseEvent};
 use serde::{Serialize, Deserialize};
 use serde_json;
 use std::sync::Mutex;
+use once_cell::sync::Lazy;
+use serde_wasm_bindgen::from_value;
 
 static SCORE: Mutex<i32> = Mutex::new(0);
 
@@ -55,6 +57,27 @@ extern "C" {
 extern "C" {
     fn logInfo(message: &str);
     fn logError(message: &str);
+}
+
+static QUIZZES: Lazy<Mutex<Vec<Quiz>>> = Lazy::new(|| Mutex::new(vec![]));
+
+#[wasm_bindgen]
+pub fn load_quizzes_from_json(data: JsValue) {
+    // JSONデータをVec<Quiz>に変換
+    let quizzes: Vec<Quiz> = from_value(data).expect("Failed to parse JSON");
+    
+    // QUIZZESにデータを格納
+    let mut quizzes_lock = QUIZZES.lock().unwrap();
+    *quizzes_lock = quizzes;
+}
+
+#[wasm_bindgen]
+pub fn print_quizzes_status() {
+    let quizzes = QUIZZES.lock().unwrap();
+    logInfo(&quizzes.len().to_string());
+    for q in quizzes.iter() {
+        logInfo(&q.question);
+    }
 }
 
 // ボタンを作成する関数
