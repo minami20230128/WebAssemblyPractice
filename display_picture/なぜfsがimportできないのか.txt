@@ -1,0 +1,17 @@
+・なぜfsがimportできないのか
+
+fs(CommmnJSモジュール)をESMから呼ぼうとしている
+
+const fs = require('fs');
+すでにimport/exportが使用されているため、これはだめ
+
+import fs from 'fs';
+これも、fsはURlとして解読できないためNG
+
+CommonJS...サーバサイド(Node.jsなど)で使われている仕様。
+モジュールをrequireで呼ぶ。
+
+ES Modules...WebブラウザでサポートされているJavaScriptの規格。
+モジュールをURLで指定し、importで呼ぶ。
+最近流行ってる方。
+

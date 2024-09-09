@@ -1,0 +1,7 @@
+手順
+・rustup、wasm-pack、npmをインストール
+・lib.rsにRustコードを書き込む
+・Cargo.tomlに必要な依存関係を書き込む
+・wasm-pack build --target web でビルド
+・/display_picture/index.htmlからlib.rsに定義した関数を呼び出す
+・サーバを起動してアクセス
