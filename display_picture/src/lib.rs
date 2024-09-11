@@ -12,17 +12,20 @@ static SCORE: Mutex<i32> = Mutex::new(0);
 
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), wasm_bindgen::JsValue> {
-    embed_picture();
-    start_quiz_initialization();
-    let str = receive_quiz_data();
-    let quiz: Quiz = match serde_json::from_str(&str) {
-        Ok(q) => q,
-        Err(e) => return Err(JsValue::from_str(&format!("JSON parsing error: {:?}", e))),
-    };
+    embed_picture()
+}
 
-    quiz.put_question();
-    quiz.put_options();
-    quiz.put_answer()
+#[wasm_bindgen]
+pub fn init_quiz()-> Result<(), wasm_bindgen::JsValue> {
+    let quiz = get_quiz();
+    match get_quiz() {
+        Some(quiz) => {
+            quiz.put_question();
+            quiz.put_options();
+            quiz.put_answer()
+        }
+        None => show_score_screen()
+    }
 }
 
 //Cargo.tomlからのパスを指定する
@@ -60,15 +63,38 @@ extern "C" {
 }
 
 static QUIZZES: Lazy<Mutex<Vec<Quiz>>> = Lazy::new(|| Mutex::new(vec![]));
+static CURRENT_INDEX: Lazy<Mutex<usize>> = Lazy::new(|| Mutex::new(0));
+
+fn get_quiz() -> Option<Quiz> {
+    // ミューテックスをロックして安全にアクセス
+    let quizzes = QUIZZES.lock().unwrap();
+    let index = get_current_index();
+    // インデックスが範囲内であれば要素を返す
+    quizzes.get(index).cloned()
+}
+
+fn get_current_index() -> usize {
+    let current_index = CURRENT_INDEX.lock().unwrap();
+    *current_index
+}
+
+fn set_current_index(index: usize) {
+    let mut current_index = CURRENT_INDEX.lock().unwrap();
+    *current_index = index;
+}
 
 #[wasm_bindgen]
 pub fn load_quizzes_from_json(data: JsValue) {
+    logInfo("load_quizzes started");
     // JSONデータをVec<Quiz>に変換
     let quizzes: Vec<Quiz> = from_value(data).expect("Failed to parse JSON");
     
     // QUIZZESにデータを格納
     let mut quizzes_lock = QUIZZES.lock().unwrap();
     *quizzes_lock = quizzes;
+    for q in quizzes_lock.iter() {
+        logInfo(&q.question);
+    }
 }
 
 #[wasm_bindgen]
@@ -107,7 +133,7 @@ pub fn put_button(answer : &str) -> Result<(), JsValue> {
     Ok(())
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Quiz {
     pub question: String,
     pub options: Vec<String>,
@@ -186,20 +212,14 @@ pub fn event(inner_html : String) -> Result<(), JsValue> {
         Err(e) => return Err(JsValue::from_str(&format!("Error removing buttons: {:?}", e))),
     }
 
-    let str = receive_quiz_data();
-    logInfo(&str);
-
-    if str == "end" {
-        show_score_screen();
-    } else {
-        // JSONのデシリアライズエラーハンドリング
-        let quiz: Quiz = match serde_json::from_str(&str) {
-            Ok(q) => q,
-            Err(e) => return Err(JsValue::from_str(&format!("JSON parsing error: {:?}", e))),
-        };
-        quiz.put_question();
-        quiz.put_options();
-        quiz.put_answer();
+    let quiz = get_quiz();
+    match get_quiz() {
+        Some(quiz) => {
+            quiz.put_question();
+            quiz.put_options();
+            quiz.put_answer();
+        }
+        None => show_score_screen().unwrap(),
     }
 
     Ok(())
