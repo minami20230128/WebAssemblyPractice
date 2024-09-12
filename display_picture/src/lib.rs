@@ -7,6 +7,8 @@ use serde_json;
 use std::sync::Mutex;
 use once_cell::sync::Lazy;
 use serde_wasm_bindgen::from_value;
+use rand::Rng;
+use std::cell::RefCell;
 
 static SCORE: Mutex<i32> = Mutex::new(0);
 
@@ -17,6 +19,7 @@ pub fn run() -> Result<(), wasm_bindgen::JsValue> {
 
 #[wasm_bindgen]
 pub fn init_quiz()-> Result<(), wasm_bindgen::JsValue> {
+    logInfo("init_quiz started");
     let quiz = get_quiz();
     match get_quiz() {
         Some(quiz) => {
@@ -64,23 +67,34 @@ extern "C" {
 
 static QUIZZES: Lazy<Mutex<Vec<Quiz>>> = Lazy::new(|| Mutex::new(vec![]));
 static CURRENT_INDEX: Lazy<Mutex<usize>> = Lazy::new(|| Mutex::new(0));
+static DISPLAYED_QUIZ_INDEXES: Lazy<Mutex<Vec<usize>>> = Lazy::new(|| Mutex::new(vec![]));
 
 fn get_quiz() -> Option<Quiz> {
-    // ミューテックスをロックして安全にアクセス
     let quizzes = QUIZZES.lock().unwrap();
-    let index = get_current_index();
-    // インデックスが範囲内であれば要素を返す
+    let index = get_index();
+    logInfo(&index.to_string());
     quizzes.get(index).cloned()
 }
 
-fn get_current_index() -> usize {
-    let current_index = CURRENT_INDEX.lock().unwrap();
-    *current_index
-}
+fn get_index() -> usize {
+    let quizzes = QUIZZES.lock().unwrap();
+    let mut displayed = DISPLAYED_QUIZ_INDEXES.lock().unwrap();
+    logInfo("get_index startd");
 
-fn set_current_index(index: usize) {
-    let mut current_index = CURRENT_INDEX.lock().unwrap();
-    *current_index = index;
+    let length = quizzes.len();
+    logInfo(&length.to_string());
+
+    let available_numbers: Vec<usize> = (1..=length - 1)
+        .filter(|&x| !displayed.contains(&x))
+        .collect();
+
+    if available_numbers.is_empty() {
+        return length;
+    }
+
+    let mut rng = rand::thread_rng();
+    let random_index = rng.gen_range(0..available_numbers.len());
+    random_index   
 }
 
 #[wasm_bindgen]
