@@ -3,12 +3,10 @@ extern crate console_error_panic_hook;
 use std::panic;
 use web_sys::{HtmlElement, NodeList, MouseEvent};
 use serde::{Serialize, Deserialize};
-use serde_json;
 use std::sync::Mutex;
 use once_cell::sync::Lazy;
 use serde_wasm_bindgen::from_value;
 use rand::Rng;
-use std::cell::RefCell;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 
