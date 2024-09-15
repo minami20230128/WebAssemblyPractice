@@ -32,34 +32,7 @@ pub fn init_quiz()-> Result<(), wasm_bindgen::JsValue> {
 }
 
 //Cargo.tomlからのパスを指定する
-#[wasm_bindgen(module = "/src/quiz.js")]
-extern "C" {
-    #[wasm_bindgen(js_namespace = window)]
-    pub type QuizProvider;
-
-    #[wasm_bindgen(js_name = "sendRandomQuizToRust")]
-    fn send_random_quiz_to_rust() -> js_sys::Promise;
-}
-
-#[wasm_bindgen(module = "/src/quiz.js")]
-extern "C" {
-    fn initializeQuizzes();
-}
-
-#[wasm_bindgen]
-pub fn start_quiz_initialization() {
-    // JavaScript の initializeQuizzes 関数を呼び出す
-    initializeQuizzes();
-}
-
-#[wasm_bindgen]
-extern "C" {
-    // JavaScript function that returns a Promise
-    #[wasm_bindgen(js_name = "handleQuizResultSync")]
-    fn handle_quiz_result_sync() -> String;
-}
-
-#[wasm_bindgen]
+#[wasm_bindgen(module = "/src/log.js")]
 extern "C" {
     fn logInfo(message: &str);
     fn logError(message: &str);
@@ -202,10 +175,6 @@ impl Quiz {
         
         Ok(())
     }
-}
-
-pub fn receive_quiz_data() -> String  {
-    return handle_quiz_result_sync();
 }
 
 #[wasm_bindgen]
