@@ -1,6 +1,15 @@
-pub fn HtmlManipulator {
+use wasm_bindgen::prelude::wasm_bindgen;
+use crate::quiz_provider::Quiz;
+use crate::quiz_provider::QuizProvider;
+use crate::result::History;
+use wasm_bindgen::JsValue;
+use web_sys::HtmlElement;
+use wasm_bindgen::closure::Closure;
+use web_sys::MouseEvent;
+use web_sys::NodeList;
+use wasm_bindgen::JsCast;
 
-}
+pub struct HtmlManipulator;
 
 impl HtmlManipulator  {
     pub fn put_quiz(&self, quiz : Quiz, index : i32){
@@ -79,7 +88,6 @@ impl HtmlManipulator  {
         Ok(())
     }
 
-    #[wasm_bindgen]
     pub fn get_prev_quiz_index() -> usize {
         let document = web_sys::window().unwrap().document().unwrap();
         let div = document.get_element_by_id("parent").unwrap();
@@ -88,26 +96,24 @@ impl HtmlManipulator  {
         return index_str.parse().expect("変換に失敗しました");
     }
 
-
-    #[wasm_bindgen]
-    pub fn event(response : String, quiz_provider : QuizProvider, result : Result) -> Result<(), JsValue> {
+    pub fn event(&self, response : String, quiz_provider : QuizProvider, result : Result) -> Result<(), JsValue> {
 
         logInfo("event started");
 
         let history = History {
-            quiz_number : self.get_prev_quiz_index(),
+            quiz_number : html_manipulator.get_prev_quiz_index(),
             users_choice : response,
-            is_correct : self.check_answer(response),
-        }
+            is_correct : html_manipulator.check_answer(response),
+        };
 
         result.add(history);
 
-        match self.remove_question() {
+        match html_manipulator.remove_question() {
             Ok(_) => {},
             Err(e) => return Err(JsValue::from_str(&format!("Error removing buttons: {:?}", e))),
         }
 
-        match self.remove_all_buttons() {
+        match html_manipulator.remove_all_buttons() {
             Ok(_) => {},
             Err(e) => return Err(JsValue::from_str(&format!("Error removing buttons: {:?}", e))),
         }
@@ -117,15 +123,14 @@ impl HtmlManipulator  {
         match quiz_provider.select_random_quiz(index) {
             Some(quiz) => {
                 logInfo(&quiz.question);
-                self.put_quiz(quiz, index);
+                html_manipulator.put_quiz(quiz, index);
             }
-            None => show_score_screen().unwrap(),
+            None => html_manipulator::show_score_screen().unwrap(),
         }
 
         Ok(())
     }
 
-    #[wasm_bindgen]
     pub fn show_score_screen() -> Result<(), JsValue> {
         let document = web_sys::window().unwrap().document().unwrap();
         let div = document.get_element_by_id("parent").unwrap();
@@ -140,8 +145,7 @@ impl HtmlManipulator  {
         Ok(())
     }
 
-    #[wasm_bindgen]
-    pub fn check_answer(&self, response : String) -> bool {
+    pub fn check_answer(response : String) -> bool {
         let document = web_sys::window().unwrap().document().unwrap();
         let div = document.get_element_by_id("parent").unwrap();
         let answer_elem = document.get_element_by_id("answer").unwrap();
@@ -150,8 +154,7 @@ impl HtmlManipulator  {
         return response == answer;
     }
 
-    #[wasm_bindgen]
-    pub fn remove_question(&self)-> Result<(), JsValue> {
+    pub fn remove_question()-> Result<(), JsValue> {
         let document = web_sys::window().unwrap().document().unwrap();
 
         // ページ内のすべてのボタン要素を取得
@@ -170,8 +173,7 @@ impl HtmlManipulator  {
     }
 
     // ページ内のすべてのボタンを削除する関数
-    #[wasm_bindgen]
-    pub fn remove_all_buttons() -> Result<(), JsValue> {
+    pub fn remove_all_buttons() -> result::Result<(), JsValue> {
         let document = web_sys::window().unwrap().document().unwrap();
 
         // ページ内のすべてのボタン要素を取得

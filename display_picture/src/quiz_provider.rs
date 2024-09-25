@@ -1,7 +1,13 @@
+use std::sync::Mutex;
+use wasm_bindgen::JsValue;
+use serde_json::from_value;
+use std::collections::HashSet;
+use wasm_bindgen::JsCast;
+
 pub struct Quiz {
-    question: String,
-    options: Vec<String>,
-    correct_answer: String,
+    pub question: String,
+    pub options: Vec<String>,
+    pub correct_answer: String,
 }
 
 impl Quiz {
@@ -26,10 +32,10 @@ impl QuizProvider {
     }
 
     pub fn select_random_quiz(&self, index : usize) -> Option<Quiz> {
-        quizzes.get(index).cloned()
+        self.quizzes.get(index).cloned()
     }
     
-    fn get_random_index(&self, result : Result) -> usize {
+    pub fn get_random_index(&self, result : Result) -> usize {
         let quizzes = self.quizzes.lock().unwrap();
 
         let mut displayed = result.get_quiz_numbers();
