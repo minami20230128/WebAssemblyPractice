@@ -1,25 +1,29 @@
 use wasm_bindgen::prelude::wasm_bindgen;
 use crate::quiz_provider::Quiz;
 use crate::quiz_provider::QuizProvider;
-use crate::result::History;
+use crate::answer::Answer;
+use crate::answer::History;
 use wasm_bindgen::JsValue;
 use web_sys::HtmlElement;
 use wasm_bindgen::closure::Closure;
 use web_sys::MouseEvent;
 use web_sys::NodeList;
 use wasm_bindgen::JsCast;
+use serde::{Serialize, Deserialize};
+use std::result;
 
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct HtmlManipulator;
 
 impl HtmlManipulator  {
-    pub fn put_quiz(&self, quiz : Quiz, index : i32){
-        self.put_question(quiz.question);
-        self.put_options(quiz.options);
-        self.put_answer(quiz.answer);
+    pub fn put_quiz(&self, quiz : Quiz, index : usize){
+        self.put_question(quiz.clone());
+        self.put_options(quiz.clone());
+        self.put_answer(quiz.clone());
         self.put_index(index);
     }
 
-    fn put_button(&self, inner_html : &str, quiz_provider : QuizProvider, result : Result) -> Result<(), JsValue> {
+    fn put_button(&self, inner_html : &str, quiz_provider : QuizProvider, answer : Answer) -> result::Result<(), JsValue> {
         let document = web_sys::window().unwrap().document().unwrap();
     
         // 新しいボタンを作成
@@ -33,7 +37,7 @@ impl HtmlManipulator  {
             let target = mouse_event.target().unwrap();
             let button = target.dyn_into::<HtmlElement>().unwrap();
             let inner_html = button.inner_html();
-            self.event(inner_html, quiz_provider, result);
+            self.event(inner_html, quiz_provider, answer);
         })  as Box<dyn Fn(MouseEvent)>);
         button.set_onclick(Some(closure.as_ref().unchecked_ref()));
         closure.forget(); // ClosureをJavaScriptで保持させる
@@ -88,7 +92,7 @@ impl HtmlManipulator  {
         Ok(())
     }
 
-    pub fn get_prev_quiz_index() -> usize {
+    pub fn get_prev_quiz_index(self) -> usize {
         let document = web_sys::window().unwrap().document().unwrap();
         let div = document.get_element_by_id("parent").unwrap();
         let index_elem = document.get_element_by_id("index").unwrap();
@@ -96,42 +100,39 @@ impl HtmlManipulator  {
         return index_str.parse().expect("変換に失敗しました");
     }
 
-    pub fn event(&self, response : String, quiz_provider : QuizProvider, result : Result) -> Result<(), JsValue> {
-
-        logInfo("event started");
+    pub fn event(&self, response : String, quiz_provider : QuizProvider, answer : Answer) -> Result<(), JsValue> {
 
         let history = History {
-            quiz_number : html_manipulator.get_prev_quiz_index(),
+            quiz_number : self.get_prev_quiz_index(),
             users_choice : response,
-            is_correct : html_manipulator.check_answer(response),
+            is_correct : self.check_answer(response),
         };
 
-        result.add(history);
+        answer.add(history);
 
-        match html_manipulator.remove_question() {
+        match self.remove_question() {
             Ok(_) => {},
             Err(e) => return Err(JsValue::from_str(&format!("Error removing buttons: {:?}", e))),
         }
 
-        match html_manipulator.remove_all_buttons() {
+        match self.remove_all_buttons() {
             Ok(_) => {},
             Err(e) => return Err(JsValue::from_str(&format!("Error removing buttons: {:?}", e))),
         }
 
-        let index = quiz_provider.get_random_index(result);
+        let index = quiz_provider.get_random_index(answer);
 
         match quiz_provider.select_random_quiz(index) {
             Some(quiz) => {
-                logInfo(&quiz.question);
-                html_manipulator.put_quiz(quiz, index);
+                self.put_quiz(quiz, index);
             }
-            None => html_manipulator::show_score_screen().unwrap(),
+            None => self.show_score_screen().unwrap(),
         }
 
         Ok(())
     }
 
-    pub fn show_score_screen() -> Result<(), JsValue> {
+    pub fn show_score_screen(self) -> Result<(), JsValue> {
         let document = web_sys::window().unwrap().document().unwrap();
         let div = document.get_element_by_id("parent").unwrap();
         let p = document.create_element("p").unwrap();
@@ -145,7 +146,7 @@ impl HtmlManipulator  {
         Ok(())
     }
 
-    pub fn check_answer(response : String) -> bool {
+    pub fn check_answer(self, response : String) -> bool {
         let document = web_sys::window().unwrap().document().unwrap();
         let div = document.get_element_by_id("parent").unwrap();
         let answer_elem = document.get_element_by_id("answer").unwrap();
@@ -154,7 +155,7 @@ impl HtmlManipulator  {
         return response == answer;
     }
 
-    pub fn remove_question()-> Result<(), JsValue> {
+    pub fn remove_question(self)-> Result<(), JsValue> {
         let document = web_sys::window().unwrap().document().unwrap();
 
         // ページ内のすべてのボタン要素を取得
@@ -173,7 +174,7 @@ impl HtmlManipulator  {
     }
 
     // ページ内のすべてのボタンを削除する関数
-    pub fn remove_all_buttons() -> result::Result<(), JsValue> {
+    pub fn remove_all_buttons(self) -> result::Result<(), JsValue> {
         let document = web_sys::window().unwrap().document().unwrap();
 
         // ページ内のすべてのボタン要素を取得
