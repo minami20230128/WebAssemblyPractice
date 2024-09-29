@@ -1,15 +1,12 @@
-use crate::answer;
-use crate::answer::Answer;
+use crate::answer::History;
 use std::sync::Mutex;
-use wasm_bindgen::JsValue;
 use serde_json::from_value;
+use serde_json::Value;
 use std::collections::HashSet;
-use wasm_bindgen::JsCast;
 use rand::Rng;
-use std::result;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize};
 
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct Quiz {
     pub question: String,
     pub options: Vec<String>,
@@ -31,7 +28,7 @@ pub struct QuizProvider {
 }
 
 impl QuizProvider {
-    pub fn load_quizzes(&self, data: JsValue){
+    pub fn load_quizzes(&self, data: Value){
         let vec: Vec<Quiz> = from_value(data).expect("Failed to parse JSON");
         let mut quizzes = self.quizzes.lock().unwrap();
         *quizzes = vec;
@@ -42,10 +39,10 @@ impl QuizProvider {
         quizzes.get(index).cloned()
     }
     
-    pub fn get_random_index(&self, answer : Answer) -> usize {
+    pub fn get_random_index(&self, history : &History) -> usize {
         let quizzes = self.quizzes.lock().unwrap();
 
-        let mut displayed = answer.get_quiz_numbers();
+        let displayed = history.get_quiz_numbers();
         let hash_displayed : HashSet<usize> = HashSet::from_iter(displayed.iter().cloned());
     
         let length = quizzes.len();
