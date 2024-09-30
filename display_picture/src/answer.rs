@@ -1,13 +1,13 @@
 use std::sync::Mutex;
 
 pub struct Record {
-    quiz_number : usize,
-    users_choice : String,
-    is_correct : bool,
+    pub quiz_number : usize,
+    pub users_choice : String,
+    pub is_correct : bool,
 }
 
 pub struct History {
-    records : Mutex<Vec<Record>>,
+    pub records : Mutex<Vec<Record>>,
 }
 
 impl History {
@@ -23,5 +23,13 @@ impl History {
         .collect();
 
         return quiz_numbers;
+    }
+
+    pub fn calc_score(&self) ->usize {
+        let records = self.records.lock().unwrap();
+        let score = records.iter()
+        .filter(|record| record.is_correct).count();
+
+        return score;
     }
 }

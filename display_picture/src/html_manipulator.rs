@@ -8,14 +8,33 @@ use wasm_bindgen::closure::Closure;
 use web_sys::MouseEvent;
 use web_sys::NodeList;
 use wasm_bindgen::JsCast;
-use std::rc::Rc;
+use std::sync::Mutex;
 
-pub struct HtmlManipulator {
-    QUIZ_PROVIDER: &'static QuizProvider,
-    HISTORY: &'static History,
-}
+static QUIZ_PROVIDER: QuizProvider = QuizProvider {
+    quizzes: Mutex::new(Vec::new()),
+};
+
+static HISTORY: History = History {
+    records: Mutex::new(Vec::new()),
+};
+
+pub struct HtmlManipulator;
 
 impl HtmlManipulator  {
+    pub fn init_quizzes(&self, data : JsValue) {
+        QUIZ_PROVIDER.load_quizzes(data);
+
+        let index = QUIZ_PROVIDER.get_random_index(&HISTORY);
+
+        match QUIZ_PROVIDER.select_random_quiz(index) {
+            Some(quiz) => {
+                self.put_quiz(&quiz, index);
+            }
+            None => self.show_score_screen().unwrap(),
+        }
+    }
+
+
     pub fn put_quiz(&self, quiz : &Quiz, index : usize){
         self.put_question(quiz);
         self.put_options(quiz);
@@ -23,26 +42,19 @@ impl HtmlManipulator  {
         self.put_index(index);
     }
 
-    fn put_button(&self, inner_html : &str) -> Result<(), JsValue> {
+    fn put_button(inner_html : &str) -> Result<(), JsValue> {
         let document = web_sys::window().unwrap().document().unwrap();
-    
-        // 新しいボタンを作成
         let button = document.create_element("button")?.dyn_into::<HtmlElement>()?;
-        button.set_id("add_soft_button");
         button.set_inner_html(inner_html);
-    
-        // ボタンにクリックイベントを設定
-        let self_clone = Rc::new(self);
-        let self_clone_for_closure = Rc::clone(&self_clone);
 
-        let button_clone = button.clone();
         let closure = Closure::wrap(Box::new(move |mouse_event: MouseEvent| {
             let target = mouse_event.target().unwrap();
             let button = target.dyn_into::<HtmlElement>().unwrap();
             let inner_html = button.inner_html();
-            self_clone_for_closure.event(inner_html);
+            Self::event(inner_html);
         })  as Box<dyn Fn(MouseEvent)>);
-        button.set_onclick(Some(closure.as_ref().unchecked_ref()));
+
+        button.add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())?;
         closure.forget(); // ClosureをJavaScriptで保持させる
     
         // <body>にボタンを追加
@@ -66,7 +78,7 @@ impl HtmlManipulator  {
 
         for answer in answers.iter() {
             // JavaScript 側にボタンを作成するための関数を呼び出す
-            let value = self.put_button(answer);
+            let value = Self::put_button(answer);
             value?;
         }
 
@@ -90,6 +102,7 @@ impl HtmlManipulator  {
         let div = document.get_element_by_id("parent").unwrap();
         let p = document.create_element("p").unwrap();
         p.set_inner_html(&index.to_string());
+        p.set_attribute("hidden", "")?;
         p.set_id("index");
         div.append_child(&p).unwrap();
         
@@ -98,39 +111,38 @@ impl HtmlManipulator  {
 
     pub fn get_prev_quiz_index(&self) -> usize {
         let document = web_sys::window().unwrap().document().unwrap();
-        let div = document.get_element_by_id("parent").unwrap();
         let index_elem = document.get_element_by_id("index").unwrap();
         let index_str = index_elem.inner_html();
         return index_str.parse().expect("変換に失敗しました");
     }
 
-    pub fn event(&self, response : String) -> Result<(), JsValue> {
+    pub fn event(response : String) -> Result<(), JsValue> {
 
         let record = Record {
-            quiz_number : self.get_prev_quiz_index(),
+            quiz_number : Self.get_prev_quiz_index(),
             users_choice : response.clone(),
-            is_correct : self.check_answer(response),
+            is_correct : Self.check_answer(response),
         };
 
-        self.HISTORY.add(record);
+        HISTORY.add(record);
 
-        match self.remove_question() {
+        match Self.remove_question() {
             Ok(_) => {},
             Err(e) => return Err(JsValue::from_str(&format!("Error removing buttons: {:?}", e))),
         }
 
-        match self.remove_all_buttons() {
+        match Self.remove_all_buttons() {
             Ok(_) => {},
             Err(e) => return Err(JsValue::from_str(&format!("Error removing buttons: {:?}", e))),
         }
 
-        let index = self.QUIZ_PROVIDER.get_random_index(self.HISTORY);
+        let index = QUIZ_PROVIDER.get_random_index(&HISTORY);
 
-        match self.QUIZ_PROVIDER.select_random_quiz(index) {
+        match QUIZ_PROVIDER.select_random_quiz(index) {
             Some(quiz) => {
-                self.put_quiz(&quiz, index);
+                Self.put_quiz(&quiz, index);
             }
-            None => self.show_score_screen().unwrap(),
+            None => Self.show_score_screen().unwrap(),
         }
 
         Ok(())
@@ -141,12 +153,14 @@ impl HtmlManipulator  {
         let div = document.get_element_by_id("parent").unwrap();
         let p = document.create_element("p").unwrap();
         p.set_inner_html("end");
-    
-        //let score_elem = document.create_element("p").unwrap();
-        //let mut score = SCORE.lock().unwrap();
-        //let result = format!("{}問正解", &score.to_string());
-        //score_elem.set_inner_html(&result);
         div.append_child(&p).unwrap();
+    
+        let score_elem = document.create_element("p").unwrap();
+        let mut score = HISTORY.calc_score();
+        let result = format!("{}問正解", &score.to_string());
+        score_elem.set_inner_html(&result);
+        div.append_child(&score_elem).unwrap();
+
         Ok(())
     }
 

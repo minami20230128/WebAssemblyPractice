@@ -1,7 +1,7 @@
 use crate::answer::History;
 use std::sync::Mutex;
-use serde_json::from_value;
-use serde_json::Value;
+use serde_wasm_bindgen::from_value;
+use wasm_bindgen::JsValue;
 use std::collections::HashSet;
 use rand::Rng;
 use serde::{Deserialize};
@@ -24,11 +24,11 @@ impl Quiz {
 }
 
 pub struct QuizProvider {
-    quizzes : Mutex<Vec<Quiz>>,
+    pub quizzes : Mutex<Vec<Quiz>>,
 }
 
 impl QuizProvider {
-    pub fn load_quizzes(&self, data: Value){
+    pub fn load_quizzes(&self, data: JsValue){
         let vec: Vec<Quiz> = from_value(data).expect("Failed to parse JSON");
         let mut quizzes = self.quizzes.lock().unwrap();
         *quizzes = vec;
