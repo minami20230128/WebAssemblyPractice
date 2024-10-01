@@ -2,13 +2,21 @@ use crate::quiz_provider::Quiz;
 use crate::quiz_provider::QuizProvider;
 use crate::answer::Record;
 use crate::answer::History;
+use js_sys::wasm_bindgen;
 use wasm_bindgen::JsValue;
+use web_sys::Document;
+use web_sys::Element;
 use web_sys::HtmlElement;
 use wasm_bindgen::closure::Closure;
 use web_sys::MouseEvent;
 use web_sys::NodeList;
 use wasm_bindgen::JsCast;
 use std::sync::Mutex;
+
+extern "C" {
+    fn logInfo(message: &str);
+    fn logError(message: &str);
+}
 
 static QUIZ_PROVIDER: QuizProvider = QuizProvider {
     quizzes: Mutex::new(Vec::new()),
@@ -21,6 +29,32 @@ static HISTORY: History = History {
 pub struct HtmlManipulator;
 
 impl HtmlManipulator  {
+    fn get_document(&self) -> Option<Document> {
+        return web_sys::window().unwrap().document();
+    }
+
+    fn get_parent_div(&self, document : &Document) -> Option<Element>{
+        return document.get_element_by_id("parent");
+    }
+
+    fn put_p(&self, inner_html : &str, is_hidden : bool, id : &str) -> Result<(), JsValue> {
+        let document = self.get_document().unwrap();
+        let div = self.get_parent_div(&document).unwrap();
+        let p = document.create_element("p").unwrap();
+        p.set_inner_html(inner_html);
+        if is_hidden {
+            p.set_attribute("hidden", "");
+        }
+        
+        if !id.is_empty() {
+            p.set_id(id);
+        }
+
+        div.append_child(&p).unwrap();
+
+        Ok(())
+    }
+
     pub fn init_quizzes(&self, data : JsValue) {
         QUIZ_PROVIDER.load_quizzes(data);
 
@@ -64,11 +98,7 @@ impl HtmlManipulator  {
     }
 
     fn put_question(&self, quiz : &Quiz) -> Result<(), JsValue> {
-        let document = web_sys::window().unwrap().document().unwrap();
-        let div = document.get_element_by_id("parent").unwrap();
-        let p = document.create_element("p").unwrap();
-        p.set_inner_html(&quiz.question);
-        div.append_child(&p).unwrap();
+        self.put_p(&quiz.question, false, "")?;
 
         Ok(())
     }
@@ -86,25 +116,13 @@ impl HtmlManipulator  {
     }
     
     fn put_answer(&self, quiz : &Quiz) -> Result<(), JsValue> {
-        let document = web_sys::window().unwrap().document().unwrap();
-        let div = document.get_element_by_id("parent").unwrap();
-        let p = document.create_element("p").unwrap();
-        p.set_inner_html(&quiz.correct_answer);
-        p.set_attribute("hidden", "")?;
-        p.set_id("answer");
-        div.append_child(&p).unwrap();
-        
+        self.put_p(&quiz.correct_answer, true, "answer")?;
+
         Ok(())
     }
 
     fn put_index(&self, index : usize) -> Result<(), JsValue> {
-        let document = web_sys::window().unwrap().document().unwrap();
-        let div = document.get_element_by_id("parent").unwrap();
-        let p = document.create_element("p").unwrap();
-        p.set_inner_html(&index.to_string());
-        p.set_attribute("hidden", "")?;
-        p.set_id("index");
-        div.append_child(&p).unwrap();
+        self.put_p(&index.to_string(), true, "index")?;
         
         Ok(())
     }
@@ -149,24 +167,15 @@ impl HtmlManipulator  {
     }
 
     pub fn show_score_screen(&self) -> Result<(), JsValue> {
-        let document = web_sys::window().unwrap().document().unwrap();
-        let div = document.get_element_by_id("parent").unwrap();
-        let p = document.create_element("p").unwrap();
-        p.set_inner_html("end");
-        div.append_child(&p).unwrap();
-    
-        let score_elem = document.create_element("p").unwrap();
-        let mut score = HISTORY.calc_score();
-        let result = format!("{}問正解", &score.to_string());
-        score_elem.set_inner_html(&result);
-        div.append_child(&score_elem).unwrap();
+        let score = HISTORY.calc_score();
+        let format = format!("{}問正解", &score.to_string());
+        self.put_p(&format, false, "")?;
 
         Ok(())
     }
 
     pub fn check_answer(&self, response : String) -> bool {
-        let document = web_sys::window().unwrap().document().unwrap();
-        let div = document.get_element_by_id("parent").unwrap();
+        let document = self.get_document().unwrap();
         let answer_elem = document.get_element_by_id("answer").unwrap();
         let answer = answer_elem.inner_html();
 
