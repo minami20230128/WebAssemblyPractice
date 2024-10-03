@@ -55,6 +55,12 @@ impl HtmlManipulator  {
         Ok(())
     }
 
+    fn get_p(&self, id : &str) -> Option<Element>
+    {
+        let document = web_sys::window().unwrap().document().unwrap();
+        document.get_element_by_id(&id)
+    }
+
     pub fn init_quizzes(&self, data : JsValue) {
         QUIZ_PROVIDER.load_quizzes(data);
 
@@ -128,8 +134,7 @@ impl HtmlManipulator  {
     }
 
     pub fn get_prev_quiz_index(&self) -> usize {
-        let document = web_sys::window().unwrap().document().unwrap();
-        let index_elem = document.get_element_by_id("index").unwrap();
+        let index_elem = self.get_p("index").unwrap();
         let index_str = index_elem.inner_html();
         return index_str.parse().expect("変換に失敗しました");
     }
@@ -175,8 +180,7 @@ impl HtmlManipulator  {
     }
 
     pub fn check_answer(&self, response : String) -> bool {
-        let document = self.get_document().unwrap();
-        let answer_elem = document.get_element_by_id("answer").unwrap();
+        let answer_elem = self.get_p("answer").unwrap();
         let answer = answer_elem.inner_html();
 
         return response == answer;
