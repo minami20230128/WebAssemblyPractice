@@ -7,31 +7,19 @@
     <body>
         <div id="parent"></div>
         <script type="module">
-            import init, {init_quiz} from '../pkg/display_picture.js';
+            import run, {load_quizzes_from_json} from '../pkg/display_picture.js';
 
             async function loadQuizzes() {
                 console.log("loadQuizzes started");
                 const response = await fetch('../src/questions.json');
                 const data = await response.json();
-
-                const wasmModule = await import('../pkg/display_picture.js');
-                window.wasm = wasmModule;
                 
-                // WebAssemblyの関数にデータを渡す
-                // WebAssemblyインスタンスのインスタンスを保持していると仮定
-                if (window.wasm) {
-                    wasm.load_quizzes_from_json(data);
-                }
-                else
-                {
-                    console.log("not window");
-                }
+                load_quizzes_from_json(data);
             }
 
             async function main() {
-                await init();
-                await loadQuizzes();
-                init_quiz();
+                await run();
+                loadQuizzes();
             }
 
             main();

@@ -172,8 +172,9 @@ impl HtmlManipulator  {
     }
 
     pub fn show_score_screen(&self) -> Result<(), JsValue> {
-        let score = HISTORY.calc_score();
-        let format = format!("{}問正解", &score.to_string());
+        let quizzes = QUIZ_PROVIDER.quizzes.lock().unwrap();
+        let score = HISTORY.calc_score(quizzes.clone());
+        let format = format!("{}点獲得！", &score.to_string());
         self.put_p(&format, false, "")?;
 
         Ok(())

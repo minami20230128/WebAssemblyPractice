@@ -1,9 +1,16 @@
 use std::sync::Mutex;
+use crate::quiz_provider::Quiz;
 
 pub struct Record {
     pub quiz_number : usize,
     pub users_choice : String,
     pub is_correct : bool,
+}
+
+impl Record {
+    pub fn set_is_correct(&mut self, is_correct: bool){
+        self.is_correct = is_correct;
+    }
 }
 
 pub struct History {
@@ -25,11 +32,19 @@ impl History {
         return quiz_numbers;
     }
 
-    pub fn calc_score(&self) ->usize {
-        let records = self.records.lock().unwrap();
-        let score = records.iter()
-        .filter(|record| record.is_correct).count();
+    pub fn calc_score(&self, quizzes: Vec<Quiz>) ->i32 {
+        let mut score = 0;
+        let mut records = self.records.lock().unwrap();
+        for record in records.iter_mut(){
+            let quiz = quizzes.get(record.quiz_number).unwrap();
+            let is_correct = record.users_choice == quiz.correct_answer;
+            record.set_is_correct(is_correct);
 
+            if is_correct {
+                score += quiz.score;
+            }
+        }
+        
         return score;
     }
 }

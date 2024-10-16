@@ -11,6 +11,7 @@ pub struct Quiz {
     pub question: String,
     pub options: Vec<String>,
     pub correct_answer: String,
+    pub score: i32,
 }
 
 impl Quiz {
@@ -19,6 +20,7 @@ impl Quiz {
             question: String::new(),
             options: Vec::new(),
             correct_answer: String::new(),
+            score: 0,
         }
     }
 }
